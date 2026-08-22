@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Preços · Banca Dati</title>
+<!-- v2.1.0 -->
+
+
+<meta name="theme-color" content="#2F6F4E">
+<meta name="description" content="Comparador de preços de mercado — descubra o melhor preço por kg/litro/unidade.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Preços">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+  :root{
+    --bg:#F6F3EC;
+    --paper:#FFFFFF;
+    --ink:#2B2A25;
+    --ink-soft:#6B6A62;
+    --line:#E4E0D4;
+    --green:#2F6F4E;
+    --green-bg:#E4F0E7;
+    --red:#B8433D;
+    --red-bg:#FBE7E5;
+    --amber:#C97F17;
+    --amber-bg:#FBEEDC;
+    --radius:12px;
+    --radius-lg:18px;
+    --nav-h:64px;
+    --safe-b:env(safe-area-inset-bottom, 0px);
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding-bottom:calc(var(--nav-h) + var(--safe-b) + 14px);
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--green); color:#fff; }
+
+  /* ---------- Header ---------- */
+  header.top{
+    position:sticky; top:0; z-index:20;
+    background:var(--bg);
+    padding:16px 16px 10px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid transparent;
+  }
+  header.top.scrolled{ border-bottom-color:var(--line); }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-mark{
+    width:34px; height:34px; border-radius:9px; background:var(--green);
+    display:flex; align-items:center; justify-content:center; color:var(--bg);
+    font-weight:800; font-size:16px; flex:none;
+  }
+  .brand h1{ font-size:1.05em; letter-spacing:.2px; }
+  .brand small{ display:block; color:var(--ink-soft); font-size:.72em; font-weight:600; letter-spacing:.4px; text-transform:uppercase; }
+  .icon-btn{
+    width:38px; height:38px; border-radius:10px; border:1px solid var(--line);
+    background:var(--paper); display:flex; align-items:center; justify-content:center;
+    font-size:1.05em; cursor:pointer; color:var(--ink);
+  }
+  .icon-btn:active{ transform:scale(.94); }
+
+  main{ max-width:640px; margin:0 auto; padding:0 16px; }
+  .view{ display:none; animation:fade .18s ease; }
+  .view.active{ display:block; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+  /* ---------- Cards / sections ---------- */
+  .panel{
+    background:var(--paper); border-radius:var(--radius-lg);
+    padding:16px; margin-bottom:14px; border:1px solid var(--line);
+  }
+  .panel h2{ font-size:.72em; text-transform:uppercase; letter-spacing:.6px; color:var(--ink-soft); margin-bottom:12px; font-weight:700; }
+
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:.82em; font-weight:600; color:var(--ink-soft); margin-bottom:5px; }
+  .row-2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row-3{ display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:10px; }
+
+  input, select{
+    width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px;
+    font-size:16px; background:var(--paper); color:var(--ink); font-family:inherit;
+  }
+  input:focus, select:focus{ outline:none; border-color:var(--green); }
+  input::placeholder{ color:#B7B2A4; }
+
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:var(--green); color:#fff; border:none; padding:14px;
+    border-radius:12px; font-size:1em; font-weight:700; cursor:pointer; width:100%;
+  }
+  .btn:active{ transform:scale(.98); }
+  .btn.secondary{ background:var(--paper); color:var(--ink); border:1.5px solid var(--line); }
+  .btn.danger{ background:var(--red); }
+  .btn-row{ display:flex; gap:10px; }
+  .btn-row .btn{ width:auto; flex:1; }
+
+  .hint-box{ border-radius:10px; padding:12px; margin-bottom:12px; font-size:.9em; }
+  .hint-box.compare{ background:var(--amber-bg); color:#7A5311; }
+  .hint-box.unit{ background:var(--green-bg); color:#1E4A33; }
+  .hint-box h3{ font-size:.85em; margin-bottom:8px; font-weight:700; }
+  .compare-item{ background:rgba(255,255,255,.6); border-radius:8px; padding:8px 10px; margin-top:6px; font-size:.92em; }
+  .compare-item b{ font-variant-numeric:tabular-nums; }
+
+  /* ---------- Search + filters ---------- */
+  .search-wrap{ position:relative; margin-bottom:10px; }
+  .search-wrap input{ padding-left:38px; font-size:16px; }
+  .search-wrap .ico{ position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:.5; }
+
+  .chips{ display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; margin-bottom:12px; scrollbar-width:none; }
+  .chips::-webkit-scrollbar{ display:none; }
+  .chip{
+    flex:none; padding:8px 14px; border-radius:20px; border:1.5px solid var(--line);
+    background:var(--paper); font-size:.85em; font-weight:600; color:var(--ink-soft); cursor:pointer; white-space:nowrap;
+  }
+  .chip.active{ background:var(--ink); border-color:var(--ink); color:#fff; }
+
+  .toolbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:10px; }
+  .toolbar select{ width:auto; padding:8px 10px; font-size:.85em; font-weight:600; }
+  .results-count{ color:var(--ink-soft); font-size:.85em; font-weight:600; }
+
+  /* ---------- Product cards ---------- */
+  .lista{ display:flex; flex-direction:column; gap:10px; }
+  .empty{ text-align:center; color:var(--ink-soft); padding:40px 20px; }
+  .empty .big{ font-size:2em; margin-bottom:8px; }
+
+  .card{
+    background:var(--paper); border-radius:var(--radius-lg); padding:14px;
+    border:1.5px solid var(--line); border-left:4px solid var(--ink);
+  }
+  .card.best{ border-left-color:var(--green); background:var(--green-bg); }
+  .card.worst{ border-left-color:var(--red); background:var(--red-bg); }
+  .card-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px; }
+  .card-title{ font-weight:700; font-size:1.02em; display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .card-sub{ color:var(--ink-soft); font-size:.85em; margin-top:2px; }
+  .badge{
+    background:linear-gradient(135deg,#ff8a5c,#e0523f); color:#fff; font-size:.68em; font-weight:800;
+    padding:3px 8px; border-radius:20px; letter-spacing:.3px; text-transform:uppercase;
+  }
+  .badge.best{ background:var(--green); }
+  .card-actions{ display:flex; gap:6px; flex:none; }
+  .mini-btn{
+    width:32px; height:32px; border-radius:9px; border:1.5px solid var(--line); background:var(--paper);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:.9em;
+  }
+  .mini-btn.del{ color:var(--red); }
+
+  .price-tag{
+    position:relative; display:inline-flex; align-items:center; background:var(--ink); color:var(--bg);
+    padding:6px 12px 6px 20px; border-radius:3px 9px 9px 3px; font-weight:800; font-variant-numeric:tabular-nums;
+    font-size:.95em;
+  }
+  .price-tag::before{ content:''; position:absolute; left:8px; top:50%; transform:translateY(-50%); width:4px; height:4px; border-radius:50%; background:var(--bg); }
+
+  .card-info{ display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; font-size:.9em; margin-bottom:10px; }
+  .info-item .l{ color:var(--ink-soft); font-size:.78em; }
+  .info-item .v{ font-weight:600; }
+  .unit-price{ color:var(--green); font-variant-numeric:tabular-nums; }
+
+  .card-foot{ display:flex; justify-content:space-between; align-items:center; padding-top:10px; border-top:1px solid var(--line); font-size:.88em; }
+  .vale-sim{ color:var(--green); font-weight:700; }
+  .vale-nao{ color:var(--red); font-weight:700; }
+  .vale-talvez{ color:var(--amber); font-weight:700; }
+  .vale-none{ color:var(--ink-soft); }
+
+  /* ---------- Bottom nav ---------- */
+  nav.bottom{
+    position:fixed; bottom:0; left:0; right:0; z-index:30;
+    background:var(--paper); border-top:1px solid var(--line);
+    display:flex; padding:8px 10px calc(8px + var(--safe-b));
+  }
+  nav.bottom button{
+    flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:6px 4px; color:var(--ink-soft); font-size:.68em; font-weight:700; letter-spacing:.2px; cursor:pointer;
+  }
+  nav.bottom button .ic{ font-size:1.25em; }
+  nav.bottom button.active{ color:var(--green); }
+
+  /* ---------- Modal / sheet ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(20,18,14,.45); z-index:50;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .overlay.open{ display:flex; }
+  .sheet{
+    background:var(--paper); width:100%; max-width:640px; border-radius:20px 20px 0 0;
+    padding:20px; max-height:88vh; overflow-y:auto;
+    padding-bottom:calc(20px + var(--safe-b));
+    animation:up .2s ease;
+  }
+  @keyframes up{ from{ transform:translateY(20px); opacity:0; } to{ transform:none; opacity:1; } }
+  .sheet-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .sheet-head h2{ font-size:1.1em; }
+  .sheet p.desc{ color:var(--ink-soft); font-size:.9em; margin-bottom:16px; }
+
+  /* ---------- Toast ---------- */
+  #toast{
+    position:fixed; left:50%; bottom:calc(var(--nav-h) + var(--safe-b) + 14px); transform:translateX(-50%) translateY(10px);
+    background:var(--ink); color:#fff; padding:11px 18px; border-radius:30px; font-size:.88em; font-weight:600;
+    z-index:60; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .fab-install{
+    position:fixed; right:16px; bottom:calc(var(--nav-h) + var(--safe-b) + 16px); z-index:25;
+    background:var(--ink); color:#fff; border:none; padding:11px 16px; border-radius:30px;
+    font-size:.85em; font-weight:700; display:none; align-items:center; gap:8px; box-shadow:0 8px 20px rgba(0,0,0,.25);
+    cursor:pointer;
+  }
+  .fab-install.show{ display:flex; }
+</style>
+</head>
+<body>
+
+<header class="top" id="topHeader">
+  <div class="brand">
+    <div class="brand-mark">€</div>
+    <div>
+      <h1>Preços</h1>
+      <small>Banca Dati Mercado</small>
+    </div>
+  </div>
+  <button class="icon-btn" id="btnMenu" title="Backup">⋮</button>
+</header>
+
+<main>
+
+  <!-- ===================== VIEW: ADICIONAR ===================== -->
+  <section class="view" id="view-add">
+    <form class="panel" id="formProduto">
+      <h2 id="formTitle">Novo produto</h2>
+
+      <div class="field">
+        <label>Produto</label>
+        <input type="text" id="produto" list="dl-produto" placeholder="Ex: Café, Leite, Arroz..." required autocomplete="off">
+        <datalist id="dl-produto"></datalist>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Marca</label>
+          <input type="text" id="marca" list="dl-marca" placeholder="Ex: Lavazza..." autocomplete="off">
+          <datalist id="dl-marca"></datalist>
+        </div>
+        <div class="field">
+          <label>Mercado</label>
+          <input type="text" id="mercado" list="dl-mercado" placeholder="Ex: Esselunga..." autocomplete="off">
+          <datalist id="dl-mercado"></datalist>
+        </div>
+      </div>
+
+      <div class="row-3">
+        <div class="field">
+          <label>Quantidade</label>
+          <input type="number" id="quantidade" placeholder="500" step="0.01" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>Medida</label>
+          <select id="tipoMedida">
+            <option value="">—</option>
+            <option value="kg">Kg</option>
+            <option value="g">Gramas</option>
+            <option value="l">Litros</option>
+            <option value="ml">Mililitros</option>
+            <option value="unidade">Unidades</option>
+            <option value="capsulas">Cápsulas</option>
+            <option value="pacotes">Pacotes</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Preço (€)</label>
+          <input type="number" id="preco" placeholder="2.50" step="0.01" inputmode="decimal">
+        </div>
+      </div>
+
+      <div id="comparacaoDiv"></div>
+      <div id="precoUnitarioDiv"></div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Vale a pena?</label>
+          <select id="valePena">
+            <option value="">Não definido</option>
+            <option value="sim">✓ Sim</option>
+            <option value="nao">✗ Não</option>
+            <option value="talvez">? Talvez</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Promoção?</label>
+          <select id="promocao">
+            <option value="nao">Não</option>
+            <option value="sim">🔥 Sim</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btn-row" id="formButtons">
+        <button type="submit" class="btn" id="btnSalvar">➕ Adicionar produto</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===================== VIEW: PRODUTOS ===================== -->
+  <section class="view active" id="view-list">
+    <div class="panel" style="margin-bottom:12px;">
+      <div class="search-wrap">
+        <span class="ico">🔍</span>
+        <input type="text" id="campoBusca" placeholder="Buscar por produto, marca ou mercado...">
+      </div>
+      <div class="chips" id="filterChips">
+        <button class="chip active" data-filter="todos">Todos</button>
+        <button class="chip" data-filter="promocao">🔥 Promoção</button>
+        <button class="chip" data-filter="sim">✓ Vale a pena</button>
+        <button class="chip" data-filter="nao">✗ Não vale</button>
+      </div>
+      <div class="toolbar">
+        <span class="results-count" id="resultadosBusca">—</span>
+        <select id="ordenacao">
+          <option value="recente">Mais recentes</option>
+          <option value="nome">Nome A–Z</option>
+          <option value="preco-menor">Preço unit. ↑</option>
+          <option value="preco-maior">Preço unit. ↓</option>
+          <option value="mercado">Mercado</option>
+        </select>
+      </div>
+    </div>
+    <div id="tabelaDiv"></div>
+  </section>
+
+  <!-- ===================== VIEW: COMPARAR ===================== -->
+  <section class="view" id="view-compare">
+    <div class="panel">
+      <h2>Comparar produto</h2>
+      <div class="field" style="margin-bottom:0;">
+        <label>Nome do produto</label>
+        <input type="text" id="compareProduto" list="dl-produto" placeholder="Ex: Tonno, Café, Leite..." autocomplete="off">
+      </div>
+    </div>
+
+    <div id="compareExisting"></div>
+
+    <div class="panel" id="compareCandidatePanel" style="display:none;">
+      <h2>Preço para comparar (ex: volantino)</h2>
+      <div class="row-3">
+        <div class="field">
+          <label>Quantidade</label>
+          <input type="number" id="compareQtd" placeholder="500" step="0.01" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>Medida</label>
+          <select id="compareTipo">
+            <option value="">—</option>
+            <option value="kg">Kg</option>
+            <option value="g">Gramas</option>
+            <option value="l">Litros</option>
+            <option value="ml">Mililitros</option>
+            <option value="unidade">Unidades</option>
+            <option value="capsulas">Cápsulas</option>
+            <option value="pacotes">Pacotes</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Preço (€)</label>
+          <input type="number" id="comparePreco" placeholder="2.50" step="0.01" inputmode="decimal">
+        </div>
+      </div>
+
+      <div id="compareVeredito"></div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Marca</label>
+          <input type="text" id="compareMarca" list="dl-marca" placeholder="Opcional" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Mercado</label>
+          <input type="text" id="compareMercado" list="dl-mercado" placeholder="Ex: Volantino Lidl..." autocomplete="off">
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Vale a pena?</label>
+          <select id="compareValePena">
+            <option value="">Não definido</option>
+            <option value="sim">✓ Sim</option>
+            <option value="nao">✗ Não</option>
+            <option value="talvez">? Talvez</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Promoção?</label>
+          <select id="comparePromocao">
+            <option value="nao">Não</option>
+            <option value="sim">🔥 Sim</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn" id="btnSaveCompare">💾 Salvar este preço</button>
+    </div>
+  </section>
+
+</main>
+
+<nav class="bottom">
+  <button data-tab="view-list" class="active"><span class="ic">📋</span>Produtos</button>
+  <button data-tab="view-add"><span class="ic">➕</span>Adicionar</button>
+  <button data-tab="view-compare"><span class="ic">⚖️</span>Comparar</button>
+</nav>
+
+<button class="fab-install" id="btnInstall">⬇ Instalar app</button>
+<div id="toast"></div>
+
+<!-- Menu sheet (backup) -->
+<div class="overlay" id="menuOverlay">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2>Opções</h2>
+      <button class="icon-btn" id="closeMenu">✕</button>
+    </div>
+    <p class="desc">Faça backup dos seus dados ou restaure a partir de um arquivo.</p>
+    <div class="btn-row" style="margin-bottom:10px;">
+      <button class="btn secondary" id="btnExport">⬆ Exportar backup</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn secondary" id="btnImport">⬇ Importar backup</button>
+    </div>
+    <input type="file" id="fileImport" accept="application/json" style="display:none;">
+  </div>
+</div>
+
+<!-- Confirm sheet -->
+<div class="overlay" id="confirmOverlay">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="confirmTitle">Confirmar</h2></div>
+    <p class="desc" id="confirmDesc"></p>
+    <div class="btn-row">
+      <button class="btn secondary" id="confirmCancel">Cancelar</button>
+      <button class="btn danger" id="confirmOk">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ESTADO
+============================================================ */
+let produtos = JSON.parse(localStorage.getItem('produtosMercado')) || [];
+let editingId = null;
+let filtroAtivo = 'todos';
+let ordenacaoAtiva = 'recente';
+
+/* ============================================================
+   HELPERS: toast / confirm modal
+============================================================ */
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+function showConfirm(title, desc, onOk){
+  const overlay = document.getElementById('confirmOverlay');
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmDesc').textContent = desc;
+  overlay.classList.add('open');
+  const okBtn = document.getElementById('confirmOk');
+  const cancelBtn = document.getElementById('confirmCancel');
+  const cleanup = () => { overlay.classList.remove('open'); okBtn.onclick = null; cancelBtn.onclick = null; };
+  okBtn.onclick = () => { cleanup(); onOk(); };
+  cancelBtn.onclick = cleanup;
+}
+
+/* ============================================================
+   NAVEGAÇÃO POR ABAS
+============================================================ */
+function switchTab(tab){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(tab).classList.add('active');
+  document.querySelectorAll('nav.bottom button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  if (tab === 'view-compare') renderCompare();
+  if (tab === 'view-list') renderizarTabela();
+  window.scrollTo({top:0});
+}
+document.querySelectorAll('nav.bottom button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+document.addEventListener('scroll', () => {
+  document.getElementById('topHeader').classList.toggle('scrolled', window.scrollY > 4);
+});
+
+/* ============================================================
+   CÁLCULO DE PREÇO UNITÁRIO
+============================================================ */
+function calcularPrecoUnitario(preco, quantidade, tipoMedida){
+  if (!preco || !quantidade) return null;
+  let precoUnit = parseFloat(preco) / parseFloat(quantidade);
+  let unidade = '';
+  switch(tipoMedida){
+    case 'kg': unidade = '€/kg'; break;
+    case 'g': precoUnit *= 1000; unidade = '€/kg'; break;
+    case 'l': unidade = '€/L'; break;
+    case 'ml': precoUnit *= 1000; unidade = '€/L'; break;
+    case 'unidade': case 'capsulas': case 'pacotes': unidade = '€/un'; break;
+    default: unidade = '€/un';
+  }
+  return { valor: precoUnit.toFixed(3), unidade };
+}
+
+/* ============================================================
+   AUTOCOMPLETE (datalists) a partir do histórico
+============================================================ */
+function atualizarDatalists(){
+  const campos = { produto: 'dl-produto', marca: 'dl-marca', mercado: 'dl-mercado' };
+  Object.keys(campos).forEach(campo => {
+    const valores = [...new Set(produtos.map(p => p[campo]).filter(Boolean))].sort();
+    const dl = document.getElementById(campos[campo]);
+    dl.innerHTML = valores.map(v => `<option value="${escapeHtml(v)}">`).join('');
+  });
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ============================================================
+   COMPARAÇÃO EM TEMPO REAL (ao digitar produto)
+============================================================ */
+function buscarComparacoes(nomeProduto){
+  if (!nomeProduto) return [];
+  return produtos.filter(p =>
+    p.produto.toLowerCase() === nomeProduto.toLowerCase() && p.id !== editingId
+  );
+}
+
+function atualizarComparacao(){
+  const produto = document.getElementById('produto').value;
+  const div = document.getElementById('comparacaoDiv');
+  if (!produto){ div.innerHTML = ''; return; }
+
+  const comparacoes = buscarComparacoes(produto);
+  if (comparacoes.length === 0){ div.innerHTML = ''; return; }
+
+  let html = `<div class="hint-box compare"><h3>📊 Já registrado em ${comparacoes.length} lugar(es)</h3>`;
+  comparacoes.forEach(p => {
+    const pu = calcularPrecoUnitario(p.preco, p.quantidade, p.tipoMedida);
+    html += `<div class="compare-item">${p.marca ? `<b>${escapeHtml(p.marca)}</b> · ` : ''}${escapeHtml(p.mercado || '—')} — ${p.quantidade}${p.tipoMedida||''} · €${p.preco}${pu ? ` <b>(${pu.valor} ${pu.unidade})</b>` : ''}</div>`;
+  });
+  html += '</div>';
+  div.innerHTML = html;
+}
+
+function atualizarPrecoUnitario(){
+  const preco = document.getElementById('preco').value;
+  const quantidade = document.getElementById('quantidade').value;
+  const tipoMedida = document.getElementById('tipoMedida').value;
+  const div = document.getElementById('precoUnitarioDiv');
+  if (preco && quantidade){
+    const pu = calcularPrecoUnitario(preco, quantidade, tipoMedida);
+    div.innerHTML = pu ? `<div class="hint-box unit"><strong>Preço unitário: ${pu.valor} ${pu.unidade}</strong></div>` : '';
+  } else {
+    div.innerHTML = '';
+  }
+}
+
+document.getElementById('produto').addEventListener('input', atualizarComparacao);
+document.getElementById('preco').addEventListener('input', atualizarPrecoUnitario);
+document.getElementById('quantidade').addEventListener('input', atualizarPrecoUnitario);
+document.getElementById('tipoMedida').addEventListener('change', atualizarPrecoUnitario);
+
+/* ============================================================
+   FORM: ADICIONAR / EDITAR
+============================================================ */
+document.getElementById('formProduto').addEventListener('submit', function(e){
+  e.preventDefault();
+
+  const dados = {
+    produto: document.getElementById('produto').value.trim(),
+    marca: document.getElementById('marca').value.trim(),
+    mercado: document.getElementById('mercado').value.trim(),
+    tipoMedida: document.getElementById('tipoMedida').value,
+    quantidade: document.getElementById('quantidade').value,
+    preco: document.getElementById('preco').value,
+    valePena: document.getElementById('valePena').value,
+    promocao: document.getElementById('promocao').value
+  };
+
+  if (!dados.produto){ showToast('Digite o nome do produto'); return; }
+
+  if (editingId !== null){
+    const idx = produtos.findIndex(p => p.id === editingId);
+    if (idx !== -1) produtos[idx] = { ...produtos[idx], ...dados };
+    showToast('Produto atualizado ✓');
+  } else {
+    produtos.push({ id: Date.now(), ...dados });
+    showToast('Produto adicionado ✓');
+  }
+
+  localStorage.setItem('produtosMercado', JSON.stringify(produtos));
+  cancelarEdicao();
+  atualizarDatalists();
+  renderizarTabela();
+  switchTab('view-list');
+});
+
+function iniciarEdicao(id){
+  const p = produtos.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  document.getElementById('produto').value = p.produto || '';
+  document.getElementById('marca').value = p.marca || '';
+  document.getElementById('mercado').value = p.mercado || '';
+  document.getElementById('tipoMedida').value = p.tipoMedida || '';
+  document.getElementById('quantidade').value = p.quantidade || '';
+  document.getElementById('preco').value = p.preco || '';
+  document.getElementById('valePena').value = p.valePena || '';
+  document.getElementById('promocao').value = p.promocao || 'nao';
+  document.getElementById('formTitle').textContent = 'Editar produto';
+  document.getElementById('btnSalvar').textContent = '💾 Salvar alterações';
+  document.getElementById('formButtons').innerHTML =
+    '<button type="submit" class="btn" id="btnSalvar">💾 Salvar alterações</button>' +
+    '<button type="button" class="btn secondary" onclick="cancelarEdicao()">Cancelar</button>';
+  atualizarComparacao();
+  atualizarPrecoUnitario();
+  switchTab('view-add');
+}
+
+function cancelarEdicao(){
+  editingId = null;
+  document.getElementById('formProduto').reset();
+  document.getElementById('promocao').value = 'nao';
+  document.getElementById('comparacaoDiv').innerHTML = '';
+  document.getElementById('precoUnitarioDiv').innerHTML = '';
+  document.getElementById('formTitle').textContent = 'Novo produto';
+  document.getElementById('formButtons').innerHTML = '<button type="submit" class="btn" id="btnSalvar">➕ Adicionar produto</button>';
+}
+
+function deletarProduto(id){
+  const p = produtos.find(x => x.id === id);
+  showConfirm('Deletar produto', `Remover "${p ? p.produto : ''}" da lista?`, () => {
+    produtos = produtos.filter(x => x.id !== id);
+    localStorage.setItem('produtosMercado', JSON.stringify(produtos));
+    atualizarDatalists();
+    renderizarTabela();
+    showToast('Produto removido');
+  });
+}
+
+/* ============================================================
+   BUSCA + FILTROS + ORDENAÇÃO
+============================================================ */
+document.getElementById('campoBusca').addEventListener('input', renderizarTabela);
+document.getElementById('ordenacao').addEventListener('change', e => { ordenacaoAtiva = e.target.value; renderizarTabela(); });
+document.querySelectorAll('#filterChips .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#filterChips .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    filtroAtivo = chip.dataset.filter;
+    renderizarTabela();
+  });
+});
+
+function aplicarFiltros(){
+  const termo = document.getElementById('campoBusca').value.toLowerCase().trim();
+  let lista = [...produtos];
+
+  if (termo){
+    lista = lista.filter(p =>
+      (p.produto||'').toLowerCase().includes(termo) ||
+      (p.marca||'').toLowerCase().includes(termo) ||
+      (p.mercado||'').toLowerCase().includes(termo)
+    );
+  }
+  if (filtroAtivo === 'promocao') lista = lista.filter(p => p.promocao === 'sim');
+  else if (filtroAtivo === 'sim' || filtroAtivo === 'nao') lista = lista.filter(p => p.valePena === filtroAtivo);
+
+  const comPU = p => { const pu = calcularPrecoUnitario(p.preco,p.quantidade,p.tipoMedida); return pu ? parseFloat(pu.valor) : null; };
+
+  switch(ordenacaoAtiva){
+    case 'nome': lista.sort((a,b) => (a.produto||'').localeCompare(b.produto||'')); break;
+    case 'mercado': lista.sort((a,b) => (a.mercado||'').localeCompare(b.mercado||'')); break;
+    case 'preco-menor': lista.sort((a,b) => (comPU(a) ?? Infinity) - (comPU(b) ?? Infinity)); break;
+    case 'preco-maior': lista.sort((a,b) => (comPU(b) ?? -Infinity) - (comPU(a) ?? -Infinity)); break;
+    default: lista.sort((a,b) => b.id - a.id);
+  }
+  return lista;
+}
+
+/* melhor/pior preço calculado sempre sobre TODOS os produtos (não apenas os filtrados) */
+function melhorPiorPorGrupo(){
+  const grupos = {};
+  produtos.forEach(p => {
+    const nome = (p.produto||'').toLowerCase();
+    const pu = calcularPrecoUnitario(p.preco, p.quantidade, p.tipoMedida);
+    if (!pu) return;
+    if (!grupos[nome]) grupos[nome] = [];
+    grupos[nome].push(parseFloat(pu.valor));
+  });
+  const resultado = {};
+  Object.keys(grupos).forEach(nome => {
+    if (grupos[nome].length > 1){
+      resultado[nome] = { min: Math.min(...grupos[nome]), max: Math.max(...grupos[nome]) };
+    }
+  });
+  return resultado;
+}
+
+function renderizarTabela(){
+  const tabelaDiv = document.getElementById('tabelaDiv');
+  const lista = aplicarFiltros();
+  const contador = document.getElementById('resultadosBusca');
+  contador.textContent = produtos.length === 0 ? '—' :
+    `${lista.length} de ${produtos.length} produto(s)`;
+
+  if (lista.length === 0){
+    tabelaDiv.innerHTML = produtos.length === 0
+      ? `<div class="empty"><div class="big">🛒</div>Nenhum produto cadastrado ainda.<br>Toque em "Adicionar" para começar.</div>`
+      : `<div class="empty"><div class="big">🔎</div>Nenhum resultado para esta busca.</div>`;
+    return;
+  }
+
+  const limites = melhorPiorPorGrupo();
+  let html = '<div class="lista">';
+
+  lista.forEach(p => {
+    const pu = calcularPrecoUnitario(p.preco, p.quantidade, p.tipoMedida);
+    const nome = (p.produto||'').toLowerCase();
+    let cardClass = '';
+    if (pu && limites[nome]){
+      const v = parseFloat(pu.valor);
+      if (v === limites[nome].min) cardClass = 'best';
+      else if (v === limites[nome].max) cardClass = 'worst';
+    }
+
+    let valeClass = 'vale-none', valeTxt = 'Não definido';
+    if (p.valePena === 'sim'){ valeClass='vale-sim'; valeTxt='✓ Vale a pena'; }
+    else if (p.valePena === 'nao'){ valeClass='vale-nao'; valeTxt='✗ Não vale a pena'; }
+    else if (p.valePena === 'talvez'){ valeClass='vale-talvez'; valeTxt='? Talvez'; }
+
+    html += `<div class="card ${cardClass}">
+      <div class="card-head">
+        <div>
+          <div class="card-title">${escapeHtml(p.produto || 'Produto')}
+            ${cardClass==='best' ? '<span class="badge best">Melhor preço</span>' : ''}
+            ${p.promocao==='sim' ? '<span class="badge">🔥 Promoção</span>' : ''}
+          </div>
+          ${p.marca ? `<div class="card-sub">${escapeHtml(p.marca)}</div>` : ''}
+        </div>
+        <div class="card-actions">
+          <button class="mini-btn" onclick="iniciarEdicao(${p.id})" title="Editar">✏️</button>
+          <button class="mini-btn del" onclick="deletarProduto(${p.id})" title="Deletar">🗑️</button>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="info-item"><div class="l">Mercado</div><div class="v">${escapeHtml(p.mercado || '—')}</div></div>
+        <div class="info-item"><div class="l">Quantidade</div><div class="v">${p.quantidade ? p.quantidade + ' ' + (p.tipoMedida||'') : '—'}</div></div>
+      </div>
+      <div class="price-tag">€${p.preco || '0.00'}</div>
+      ${pu ? ` <span class="unit-price" style="font-weight:700;font-size:.88em;">(${pu.valor} ${pu.unidade})</span>` : ''}
+      <div class="card-foot">
+        <span class="${valeClass}">${valeTxt}</span>
+      </div>
+    </div>`;
+  });
+
+  html += '</div>';
+  tabelaDiv.innerHTML = html;
+}
+
+/* ============================================================
+   COMPARAR: autocomplete → mostra só o mesmo produto noutros
+   mercados, e permite lançar um preço (ex. de volantino) para
+   ver na hora se compensa, antes de salvar.
+============================================================ */
+function renderCompare(){
+  const termo = document.getElementById('compareProduto').value.trim();
+  const existingDiv = document.getElementById('compareExisting');
+  const candidatePanel = document.getElementById('compareCandidatePanel');
+  const veredito = document.getElementById('compareVeredito');
+
+  if (!termo){
+    existingDiv.innerHTML = `<div class="empty" style="padding:24px 10px;"><div class="big">⚖️</div>Digite o nome de um produto para comparar<br>(ex: "tonno", "café", "leite"...)</div>`;
+    candidatePanel.style.display = 'none';
+    return;
+  }
+
+  const matches = produtos
+    .filter(p => (p.produto||'').toLowerCase().includes(termo.toLowerCase()))
+    .map(p => ({ ...p, _pu: calcularPrecoUnitario(p.preco, p.quantidade, p.tipoMedida) }))
+    .filter(p => p._pu)
+    .sort((a,b) => parseFloat(a._pu.valor) - parseFloat(b._pu.valor));
+
+  if (matches.length === 0){
+    existingDiv.innerHTML = `<div class="empty" style="padding:24px 10px;"><div class="big">🆕</div>Nenhum preço registrado ainda para "${escapeHtml(termo)}".<br>Lance um preço abaixo para começar a comparar.</div>`;
+  } else {
+    let html = `<div class="lista">`;
+    matches.forEach((p,i) => {
+      const cls = i === 0 ? 'best' : (i === matches.length-1 && matches.length > 1 ? 'worst' : '');
+      html += `<div class="card ${cls}" style="padding:12px;">
+        <div class="card-head" style="margin-bottom:6px;">
+          <div>
+            <div class="card-title" style="font-size:.95em;">${escapeHtml(p.produto)} ${i===0 ? '<span class="badge best">Melhor</span>' : ''}</div>
+            ${p.marca ? `<div class="card-sub">${escapeHtml(p.marca)}</div>` : ''}
+          </div>
+        </div>
+        <div class="card-info" style="margin-bottom:0;">
+          <div class="info-item"><div class="l">Mercado</div><div class="v">${escapeHtml(p.mercado || '—')}</div></div>
+          <div class="info-item"><div class="l">Preço</div><div class="v">€${p.preco} <span class="unit-price">(${p._pu.valor} ${p._pu.unidade})</span></div></div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+    existingDiv.innerHTML = html;
+  }
+
+  candidatePanel.style.display = 'block';
+
+  const qtd = document.getElementById('compareQtd').value;
+  const tipo = document.getElementById('compareTipo').value;
+  const preco = document.getElementById('comparePreco').value;
+  const pu = calcularPrecoUnitario(preco, qtd, tipo);
+
+  if (!pu){
+    veredito.innerHTML = '';
+    return;
+  }
+
+  const valor = parseFloat(pu.valor);
+
+  if (matches.length === 0){
+    veredito.innerHTML = `<div class="hint-box unit"><strong>Preço unitário: ${pu.valor} ${pu.unidade}</strong><br>Primeiro preço para este produto — vai virar a referência inicial.</div>`;
+    return;
+  }
+
+  const melhor = matches[0];
+  const pior = matches[matches.length-1];
+  const valorMelhor = parseFloat(melhor._pu.valor);
+  const valorPior = parseFloat(pior._pu.valor);
+
+  if (valor < valorMelhor){
+    const dif = (((valorMelhor - valor) / valorMelhor) * 100).toFixed(0);
+    veredito.innerHTML = `<div class="hint-box unit"><strong>🎉 Melhor preço! (${pu.valor} ${pu.unidade})</strong><br>${dif}% mais barato que o melhor já registrado (${escapeHtml(melhor.mercado || '—')}, ${melhor._pu.valor} ${melhor._pu.unidade}).</div>`;
+  } else if (valor > valorPior){
+    const dif = (((valor - valorPior) / valorPior) * 100).toFixed(0);
+    veredito.innerHTML = `<div class="hint-box compare"><strong>⚠️ Preço mais alto (${pu.valor} ${pu.unidade})</strong><br>${dif}% mais caro que o pior já registrado (${escapeHtml(pior.mercado || '—')}, ${pior._pu.valor} ${pior._pu.unidade}). Melhor opção: ${escapeHtml(melhor.mercado || '—')} a ${melhor._pu.valor} ${melhor._pu.unidade}.</div>`;
+  } else {
+    const dif = (((valor - valorMelhor) / valorMelhor) * 100).toFixed(0);
+    veredito.innerHTML = `<div class="hint-box compare"><strong>Preço intermediário (${pu.valor} ${pu.unidade})</strong><br>${dif}% mais caro que o melhor (${escapeHtml(melhor.mercado || '—')}, ${melhor._pu.valor} ${melhor._pu.unidade}).</div>`;
+  }
+}
+
+document.getElementById('compareProduto').addEventListener('input', renderCompare);
+document.getElementById('compareQtd').addEventListener('input', renderCompare);
+document.getElementById('compareTipo').addEventListener('change', renderCompare);
+document.getElementById('comparePreco').addEventListener('input', renderCompare);
+
+document.getElementById('btnSaveCompare').addEventListener('click', () => {
+  const produto = document.getElementById('compareProduto').value.trim();
+  const preco = document.getElementById('comparePreco').value;
+  const quantidade = document.getElementById('compareQtd').value;
+
+  if (!produto){ showToast('Digite o nome do produto'); return; }
+  if (!preco || !quantidade){ showToast('Preencha quantidade e preço'); return; }
+
+  const dados = {
+    id: Date.now(),
+    produto,
+    marca: document.getElementById('compareMarca').value.trim(),
+    mercado: document.getElementById('compareMercado').value.trim(),
+    tipoMedida: document.getElementById('compareTipo').value,
+    quantidade,
+    preco,
+    valePena: document.getElementById('compareValePena').value,
+    promocao: document.getElementById('comparePromocao').value
+  };
+
+  produtos.push(dados);
+  localStorage.setItem('produtosMercado', JSON.stringify(produtos));
+  atualizarDatalists();
+  showToast('Preço salvo ✓');
+
+  document.getElementById('compareMercado').value = '';
+  document.getElementById('compareMarca').value = '';
+  document.getElementById('compareQtd').value = '';
+  document.getElementById('comparePreco').value = '';
+  document.getElementById('compareValePena').value = '';
+  document.getElementById('comparePromocao').value = 'nao';
+  renderCompare();
+});
+
+/* ============================================================
+   BACKUP: EXPORTAR / IMPORTAR
+============================================================ */
+document.getElementById('btnMenu').addEventListener('click', () => document.getElementById('menuOverlay').classList.add('open'));
+document.getElementById('closeMenu').addEventListener('click', () => document.getElementById('menuOverlay').classList.remove('open'));
+document.getElementById('menuOverlay').addEventListener('click', e => { if (e.target.id === 'menuOverlay') e.currentTarget.classList.remove('open'); });
+
+document.getElementById('btnExport').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(produtos, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const data = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = `precos-backup-${data}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Backup exportado ✓');
+});
+
+document.getElementById('btnImport').addEventListener('click', () => document.getElementById('fileImport').click());
+document.getElementById('fileImport').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      const importados = JSON.parse(ev.target.result);
+      if (!Array.isArray(importados)) throw new Error('formato inválido');
+      document.getElementById('menuOverlay').classList.remove('open');
+      showConfirm('Importar backup', `Adicionar ${importados.length} produto(s) aos ${produtos.length} já cadastrados?`, () => {
+        const existentes = new Set(produtos.map(p => p.id));
+        importados.forEach(p => { if (!existentes.has(p.id)) produtos.push(p); });
+        localStorage.setItem('produtosMercado', JSON.stringify(produtos));
+        atualizarDatalists();
+        renderizarTabela();
+        showToast('Backup importado ✓');
+      });
+    } catch(err){
+      showToast('Arquivo inválido');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
+/* ============================================================
+   PWA: service worker + botão de instalação
+============================================================ */
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('btnInstall').classList.add('show');
+});
+document.getElementById('btnInstall').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('btnInstall').classList.remove('show');
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('btnInstall').classList.remove('show');
+});
+
+/* ============================================================
+   INIT
+============================================================ */
+atualizarDatalists();
+renderizarTabela();
+</script>
+</body>
+</html>
